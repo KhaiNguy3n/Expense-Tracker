@@ -1,6 +1,6 @@
 from flask import render_template, url_for, flash, redirect, request, jsonify, session
 from expenses_tracker import app, db, bcrypt
-from expenses_tracker.forms import RegistrationForm, LoginForm, UpdateAccountForm, ExpenseForm
+from expenses_tracker.forms import RegistrationForm, LoginForm, UpdateAccountForm, ExpenseForm, RequestResetForm, ResetPasswordForm, CustomCategoryForm
 from expenses_tracker.models import User, Topic, Category, Income, Expense, Transaction, Budget
 from flask_login import login_user, current_user, logout_user, login_required
 import secrets
@@ -9,6 +9,9 @@ from PIL import Image
 from datetime import datetime, timedelta
 from sqlalchemy import extract
 from sqlalchemy import func
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 @app.route("/home")
 @app.route("/")
 def home():
@@ -1465,3 +1468,89 @@ def download_excel():
     except Exception as e:
         app.logger.error(f"Error in download_excel: {str(e)}")
         return jsonify({"success": False, "message": f"Đã xảy ra lỗi: {str(e)}"}), 500
+
+@app.route("/reset_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RequestResetForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            return redirect(url_for('reset_token', email=form.email.data))
+        else:
+            flash('Email not found. Please register first.', 'warning')
+            return redirect(url_for('register'))
+    return render_template('reset_request.html', title='Reset Password', form=form)
+
+@app.route("/reset_password/<email>", methods=['GET', 'POST'])
+def reset_token(email):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        flash('Invalid email address', 'warning')
+        return redirect(url_for('reset_request'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.password = hashed_password
+        db.session.commit()
+        flash('Your password has been updated! You can now log in', 'success')
+        return redirect(url_for('login'))
+    return render_template('reset_token.html', title='Reset Password', form=form)
+
+@app.route("/categories", methods=['GET', 'POST'])
+@login_required
+def categories():
+    form = CustomCategoryForm()
+    if form.validate_on_submit():
+        # Get the topic based on type
+        topic = Topic.query.filter_by(type=form.type.data).first()
+        if not topic:
+            flash('Invalid category type', 'danger')
+            return redirect(url_for('categories'))
+        
+        # Check if category name already exists for this user
+        existing_category = Category.query.filter_by(
+            name=form.name.data,
+            user_id=current_user.id,
+            type=form.type.data
+        ).first()
+        
+        if existing_category:
+            flash('A category with this name already exists', 'danger')
+            return redirect(url_for('categories'))
+        
+        # Create new category
+        new_category = Category(
+            name=form.name.data,
+            description=form.description.data,
+            type=form.type.data,
+            topic_id=topic.id,
+            user_id=current_user.id
+        )
+        
+        db.session.add(new_category)
+        db.session.commit()
+        flash('Category created successfully!', 'success')
+        return redirect(url_for('categories'))
+    
+    # Get user's custom categories
+    custom_categories = Category.query.filter_by(user_id=current_user.id).all()
+    return render_template('categories.html', title='Manage Categories', form=form, categories=custom_categories)
+
+@app.route("/categories/delete/<int:category_id>", methods=['POST'])
+@login_required
+def delete_category(category_id):
+    category = Category.query.filter_by(id=category_id, user_id=current_user.id).first_or_404()
+    
+    # Check if category is in use
+    if category.expenses or category.incomes:
+        flash('Cannot delete category that is in use', 'danger')
+        return redirect(url_for('categories'))
+    
+    db.session.delete(category)
+    db.session.commit()
+    flash('Category deleted successfully!', 'success')
+    return redirect(url_for('categories'))

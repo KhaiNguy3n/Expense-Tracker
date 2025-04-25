@@ -76,3 +76,29 @@ class TransactionForm(FlaskForm):
     ])
     description = StringField('Description')
     date = DateField('Date', validators=[DataRequired()])
+
+class RequestResetForm(FlaskForm):
+    email = StringField('Email',
+        validators=[DataRequired(), Email()])
+    submit = SubmitField('Request Password Reset')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user is None:
+            raise ValidationError('There is no account with that email. You must register first.')
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
+    confirm_password = PasswordField('Confirm Password',
+        validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Reset Password')
+
+class CustomCategoryForm(FlaskForm):
+    name = StringField('Category Name', 
+        validators=[DataRequired(), Length(min=2, max=100)])
+    description = StringField('Description', 
+        validators=[Length(max=500)])
+    type = SelectField('Type', 
+        choices=[('income', 'Income'), ('expense', 'Expense')], 
+        validators=[DataRequired()])
+    submit = SubmitField('Create Category')
