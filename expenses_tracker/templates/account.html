@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Profile Section Styling */
+    .profile-box {
+        border: 2px solid #ddd;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .account-img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin-right: 15px;
+    }
+
+    /* Sidebar Styling */
+    .sidebar-box {
+        border: 2px solid #ddd;
+        padding: 15px;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .list-group-item {
+        border: none;
+        background-color: #f8f9fa;
+    }
+
+    /* Container Spacing */
+    .container {
+        margin-top: 40px;
+    }
+</style>
+
+<div class="container">
+    <div class="row">
+        <!-- Profile Section -->
+        <div class="col-md-8">
+            <div class="profile-box">
+                <div class="media align-items-center">
+                    <img class="account-img" src="{{ image_file }}">
+                    <div class="media-body">
+                        <h2 class="account-heading">{{ current_user.username }}</h2>
+                        <p class="text-secondary">{{ current_user.email }}</p>
+                    </div>
+                </div>
+            </div>
+      <div class="content-section">
+        <form method="POST" action="" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Account info</legend>
+                <div class="form-group">
+                    {{ form.username.label(class="form-control-label") }}
+
+                    {% if form.username.errors %}
+                        {{ form.username(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.username.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.username(class="form-control form-control-lg") }}
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    {{ form.email.label(class="form-control-label") }}
+                    {% if form.email.errors %}
+                        {{ form.email(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.email.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.email(class="form-control form-control-lg") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            
+            <div class="form-group mt-2">
+              <label class="form-control-label">{{ form.picture.label.text }}</label>
+              <div class="mt-2">
+                  {{ form.picture(class="form-control-file") }}
+              </div>
+              {% if form.picture.errors %}
+                  {% for error in form.picture.errors %}
+                      <span class="text-danger">{{ error }}</span> <br>
+                  {% endfor %}
+              {% endif %}
+          </div>
+          <div class="form-group mt-3">
+                {{ form.submit(class="btn btn-outline-info") }}
+            </div>
+        </form>
+    </div>
+    </div>
+{% endblock content %}

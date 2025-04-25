@@ -1,0 +1,210 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Quản lý Chi Tiêu và Thu Nhập</h2>
+    
+    <!-- Buttons for Add and Delete -->
+    <div class="mb-4">
+        <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            <i class="fas fa-plus"></i> Thêm Giao Dịch
+        </button>
+        <button type="button" class="btn btn-danger" id="deleteSelectedBtn">
+            <i class="fas fa-trash"></i> Xóa Giao Dịch
+        </button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" id="transactionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses" type="button" role="tab">
+                Chi Tiêu
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="incomes-tab" data-bs-toggle="tab" data-bs-target="#incomes" type="button" role="tab">
+                Thu Nhập
+            </button>
+        </li>
+    </ul>
+    
+    <!-- Tab Content -->
+    <div class="tab-content" id="transactionTabsContent">
+        <!-- Expenses Tab -->
+        <div class="tab-pane fade show active" id="expenses" role="tabpanel">
+            <div class="table-responsive">
+                <form id="deleteForm" action="{{ url_for('delete_expenses') }}" method="POST">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th><input type="checkbox" id="selectAllExpenses"></th>
+                                <th>Thời Gian</th>
+                                <th>Loại</th>
+                                <th>Danh Mục</th>
+                                <th>Số Tiền</th>
+                                <th>Mô Tả</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if expenses.items %}
+                                {% for expense in expenses.items %}
+                                <tr>
+                                    <td><input type="checkbox" name="expense_ids" value="{{ expense.id }}" class="expense-checkbox"></td>
+                                    <td>{{ expense.date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ expense.category.topic.name }}</td>
+                                    <td>{{ expense.category.name }}</td>
+                                    <td class="text-danger">{{ "{:,.2f}".format(expense.amount) }}</td>
+                                    <td>{{ expense.description or "N/A" }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Không có dữ liệu chi tiêu</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+        </div>
+
+        <!-- Incomes Tab -->
+        <div class="tab-pane fade" id="incomes" role="tabpanel">
+            <div class="table-responsive">
+                <form id="deleteIncomeForm" action="{{ url_for('delete_expenses') }}" method="POST">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th><input type="checkbox" id="selectAllIncomes"></th>
+                                <th>Thời Gian</th>
+                                <th>Loại</th>
+                                <th>Danh Mục</th>
+                                <th>Số Tiền</th>
+                                <th>Mô Tả</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if incomes.items %}
+                                {% for income in incomes.items %}
+                                <tr>
+                                    <td><input type="checkbox" name="expense_ids" value="{{ income.id }}" class="income-checkbox"></td>
+                                    <td>{{ income.date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ income.category.topic.name }}</td>
+                                    <td>{{ income.category.name }}</td>
+                                    <td class="text-success">{{ "{:,.2f}".format(income.amount) }}</td>
+                                    <td>{{ income.description or "N/A" }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Không có dữ liệu thu nhập</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addExpenseModalLabel">Thêm Giao Dịch Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('add_expense') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">Loại:</label>
+                        {{ form.topic(class="form-select", id="topic") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Danh Mục:</label>
+                        {{ form.category(class="form-select", id="category") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ngày:</label>
+                        {{ form.date(class="form-control", type="date") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Số Tiền:</label>
+                        {{ form.amount(class="form-control", placeholder="Nhập số tiền") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô Tả (tùy chọn):</label>
+                        {{ form.description(class="form-control", placeholder="Nhập mô tả giao dịch") }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Handling Category Selection and Checkboxes -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCategories();
+        setupCheckboxHandlers();
+    });
+
+    document.getElementById('topic').addEventListener('change', function() {
+        updateCategories();
+    });
+
+    function updateCategories() {
+        const topicType = document.getElementById('topic').value;
+        fetch('/get_categories/' + topicType)
+            .then(response => response.json())
+            .then(data => {
+                const categorySelect = document.getElementById('category');
+                categorySelect.innerHTML = '';
+                
+                if (data.categories.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = 'Không có danh mục khả dụng';
+                    categorySelect.appendChild(option);
+                    return;
+                }
+                
+                data.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
+            });
+    }
+
+    function setupCheckboxHandlers() {
+        // Handle select all checkboxes
+        document.getElementById('selectAllExpenses').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.expense-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        });
+
+        document.getElementById('selectAllIncomes').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.income-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        });
+
+        // Handle delete button
+        document.getElementById('deleteSelectedBtn').addEventListener('click', function() {
+            const activeTab = document.querySelector('.tab-pane.active');
+            const form = activeTab.querySelector('form');
+            if (form) {
+                form.submit();
+            }
+        });
+    }
+</script>
+{% endblock content %}

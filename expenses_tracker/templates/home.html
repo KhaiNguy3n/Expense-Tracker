@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETracker - Smart Expense Tracker</title>
+  <style>
+    /* Reset and base styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      scroll-behavior: smooth; /* Enable smooth scrolling */
+    }
+
+    body {
+      min-height: 100vh;
+      color: #e6e6e6;
+      background-color: #0a1929;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Background styles */
+    .background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .background img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.2; /* Increased opacity to make image more visible */
+    }
+
+    .background::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, rgba(10, 25, 41, 0.7), rgba(10, 25, 41, 0.8)); /* More transparent overlay */
+    }
+
+    /* Header styles */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid #1e3a5f;
+      background-color: rgba(10, 25, 41, 0.8); /* More transparent header */
+      backdrop-filter: blur(8px);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 0;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #4dabf7;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #e6e6e6;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: #4dabf7;
+    }
+
+    /* Main content styles */
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 5;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 5rem 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+      min-height: 80vh;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      line-height: 1.2;
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Added text shadow for better readability */
+    }
+
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      color: #a5d8ff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); /* Added text shadow for better readability */
+    }
+
+    .feature svg {
+      color: #4dabf7;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); /* Added shadow to SVG */
+    }
+
+    .cta-button {
+      display: inline-block;
+      background-color: #4dabf7;
+      color: #0a1929;
+      font-size: 1.125rem;
+      font-weight: 600;
+      padding: 0.75rem 2rem;
+      border-radius: 0.375rem;
+      text-decoration: none;
+      transition: background-color 0.2s ease;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Added shadow to button */
+    }
+
+    .cta-button:hover {
+      background-color: #339af0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Section styles */
+    section {
+      padding: 5rem 1rem;
+      position: relative;
+    }
+
+    section h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-align: center;
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    /* About section */
+    #about {
+      background-color: rgba(10, 25, 41, 0.6);
+      border-top: 1px solid #1e3a5f;
+      border-bottom: 1px solid #1e3a5f;
+    }
+
+    .about-content {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: rgba(30, 58, 95, 0.3);
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .about-content h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #4dabf7;
+    }
+
+    .team-members {
+      list-style-type: none;
+      padding-left: 1rem;
+    }
+
+    .team-members li {
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+
+    /* Contact section */
+    #contact {
+      background-color: rgba(10, 25, 41, 0.7);
+    }
+
+    .contact-content {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .contact-info {
+      display: inline-block;
+      background-color: rgba(30, 58, 95, 0.3);
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .contact-info p {
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    /* Footer styles */
+    footer {
+      position: relative;
+      z-index: 10;
+      border-top: 1px solid #1e3a5f;
+      background-color: rgba(10, 25, 41, 0.8); /* More transparent footer */
+      backdrop-filter: blur(8px);
+      padding: 1.5rem 0;
+      text-align: center;
+      color: #a5d8ff;
+      font-size: 0.875rem;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .nav-links {
+        gap: 1rem;
+      }
+      
+      .nav-links a {
+        font-size: 0.75rem;
+      }
+
+      .hero h1 {
+        font-size: 2.25rem;
+      }
+
+      .features {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      section h2 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Image -->
+  <div class="background">
+    <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Jrw1Fr60x1e8MWTSrqRjYJbhNQw8Cc.png" alt="Finance background">
+  </div>
+
+  <!-- Header/Navbar -->
+  <header>
+    <div class="container">
+      <div class="navbar">
+        <a href="#" class="logo">ETracker</a>
+        
+        <nav class="nav-links">
+          <a href="#contact">Contact us</a>
+          <a href="#about">APDS Project</a>
+          <a href="#about">About us</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="container">
+      <div class="hero">
+        <h1>Smart expense tracker</h1>
+        
+        <div class="features">
+          <div class="feature">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20"></path>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            Optimize your cashflow
+          </div>
+          
+          <div class="feature">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="m9 15 2 2 4-4"></path>
+            </svg>
+            Easy to use
+          </div>
+        </div>
+        
+        <a href="{{ url_for('login') }}" class="cta-button">Get Started</a>
+      </div>
+    </div>
+
+    <!-- About Us Section -->
+    <section id="about">
+      <div class="container">
+        <h2>About Us</h2>
+        <div class="about-content">
+          <h3>Nhom 15: Expense Tracker</h3>
+          <p>We are a team of students developing this expense tracker application as part of our APDS project.</p>
+          <h3>Members:</h3>
+          <ul class="team-members">
+            <li>Le Huu Hung 22645671</li>
+            <li>Nguyen Van Thanh 22734221</li>
+            <li>Nguyen Khai 2134234</li>
+          </ul>
+          <h3>Class:</h3>
+          <p>APDS: DHKHDL18A</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Us Section -->
+    <section id="contact">
+      <div class="container">
+        <h2>Contact Us</h2>
+        <div class="contact-content">
+          <div class="contact-info">
+            <p>Have questions about our expense tracker?</p>
+            <p>Feel free to reach out to our team members:</p>
+            <p>Email: team15@example.com</p>
+            <p>Phone: +84 123 456 789</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; <script>document.write(new Date().getFullYear())</script> ETracker. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>     

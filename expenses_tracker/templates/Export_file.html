@@ -1,0 +1,357 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center"><i class="fas fa-file-export me-2"></i>Xuất báo cáo chi tiêu</h2>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-cog me-2"></i>Tùy chọn báo cáo</h5>
+                </div>
+                <div class="card-body">
+                    <form id="exportForm">
+                        <div class="mb-3">
+                            <label for="reportMonth" class="form-label">Tháng báo cáo</label>
+                            <input type="month" class="form-control" id="reportMonth" name="reportMonth" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Dữ liệu cần xuất</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="income" id="includeIncome" name="includeData" checked>
+                                <label class="form-check-label" for="includeIncome">
+                                    <i class="fas fa-arrow-down text-success me-1"></i>Thu nhập
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="expense" id="includeExpense" name="includeData" checked>
+                                <label class="form-check-label" for="includeExpense">
+                                    <i class="fas fa-arrow-up text-danger me-1"></i>Chi tiêu
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="chart" id="includeChart" name="includeData" checked>
+                                <label class="form-check-label" for="includeChart">
+                                    <i class="fas fa-chart-pie me-1"></i>Biểu đồ thống kê
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" id="previewBtn" class="btn btn-info"><i class="fas fa-eye me-2"></i>Xem trước</button>
+                            <button type="button" id="downloadBtn" class="btn btn-success"><i class="fas fa-download me-2"></i>Tải xuống Excel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-eye me-2"></i>Xem trước báo cáo</h5>
+                </div>
+                <div class="card-body">
+                    <div id="previewContent">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-file-excel fa-4x mb-3"></i>
+                            <h4>Chọn tháng và nhấn "Xem trước" để xem báo cáo</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Đặt giá trị mặc định cho input tháng là tháng hiện tại
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        $('#reportMonth').val(`${year}-${month}`);
+        
+        // Xử lý sự kiện xem trước
+        $('#previewBtn').click(function() {
+            const month = $('#reportMonth').val();
+            if (!month) {
+                alert('Vui lòng chọn tháng báo cáo');
+                return;
+            }
+            
+            // Lấy dữ liệu đã chọn để xuất
+            const includeIncome = $('#includeIncome').is(':checked');
+            const includeExpense = $('#includeExpense').is(':checked');
+            const includeChart = $('#includeChart').is(':checked');
+            
+            // Hiển thị spinner trong khi tải dữ liệu
+            $('#previewContent').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Đang tải dữ liệu...</p></div>');
+            
+            // Gửi yêu cầu Ajax để lấy dữ liệu xem trước
+            $.ajax({
+                url: '/preview_export',
+                type: 'POST',
+                data: {
+                    month: month,
+                    includeIncome: includeIncome,
+                    includeExpense: includeExpense,
+                    includeChart: includeChart
+                },
+                success: function(response) {
+                    if (response.success) {
+                        displayPreview(response.data);
+                    } else {
+                        $('#previewContent').html(`
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>${response.message}
+                            </div>
+                        `);
+                    }
+                },
+                error: function() {
+                    $('#previewContent').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>Đã xảy ra lỗi khi tải dữ liệu
+                        </div>
+                    `);
+                }
+            });
+        });
+        
+        // Xử lý sự kiện tải xuống Excel
+        $('#downloadBtn').click(function() {
+            const month = $('#reportMonth').val();
+            if (!month) {
+                alert('Vui lòng chọn tháng báo cáo');
+                return;
+            }
+            
+            // Lấy dữ liệu đã chọn để xuất
+            const includeIncome = $('#includeIncome').is(':checked');
+            const includeExpense = $('#includeExpense').is(':checked');
+            const includeChart = $('#includeChart').is(':checked');
+            
+            // Hiển thị spinner
+            $('#downloadBtn').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang tạo file...');
+            $('#downloadBtn').prop('disabled', true);
+            
+            // Gửi yêu cầu Ajax để tải xuống file
+            $.ajax({
+                url: '/download_excel',
+                type: 'POST',
+                data: {
+                    month: month,
+                    includeIncome: includeIncome,
+                    includeExpense: includeExpense,
+                    includeChart: includeChart
+                },
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(data) {
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const [year, monthNum] = month.split('-');
+                    const fileName = `Bao_cao_chi_tieu_${monthNum}_${year}.xlsx`;
+                    saveAs(blob, fileName);
+                    
+                    // Khôi phục nút tải xuống
+                    $('#downloadBtn').html('<i class="fas fa-download me-2"></i>Tải xuống Excel');
+                    $('#downloadBtn').prop('disabled', false);
+                },
+                error: function() {
+                    alert('Đã xảy ra lỗi khi tạo file Excel');
+                    
+                    // Khôi phục nút tải xuống
+                    $('#downloadBtn').html('<i class="fas fa-download me-2"></i>Tải xuống Excel');
+                    $('#downloadBtn').prop('disabled', false);
+                }
+            });
+        });
+        
+        // Hàm hiển thị xem trước báo cáo
+        function displayPreview(data) {
+            let html = '';
+            
+            if (data.incomes && data.incomes.length > 0) {
+                html += `
+                    <div class="mb-4">
+                        <h4 class="text-success mb-3"><i class="fas fa-arrow-down me-2"></i>Thu nhập (${data.totalIncome.toLocaleString('vi-VN')} VNĐ)</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Ngày</th>
+                                        <th>Danh mục</th>
+                                        <th>Mô tả</th>
+                                        <th class="text-end">Số tiền (VNĐ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                data.incomes.forEach(income => {
+                    html += `
+                        <tr>
+                            <td>${income.date}</td>
+                            <td>${income.category}</td>
+                            <td>${income.description || '-'}</td>
+                            <td class="text-end">${income.amount.toLocaleString('vi-VN')}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (data.expenses && data.expenses.length > 0) {
+                html += `
+                    <div class="mb-4">
+                        <h4 class="text-danger mb-3"><i class="fas fa-arrow-up me-2"></i>Chi tiêu (${data.totalExpense.toLocaleString('vi-VN')} VNĐ)</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-danger">
+                                    <tr>
+                                        <th>Ngày</th>
+                                        <th>Danh mục</th>
+                                        <th>Mô tả</th>
+                                        <th class="text-end">Số tiền (VNĐ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                data.expenses.forEach(expense => {
+                    html += `
+                        <tr>
+                            <td>${expense.date}</td>
+                            <td>${expense.category}</td>
+                            <td>${expense.description || '-'}</td>
+                            <td class="text-end">${expense.amount.toLocaleString('vi-VN')}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (data.categoryExpenses && Object.keys(data.categoryExpenses).length > 0) {
+                html += `
+                    <div class="mb-4">
+                        <h4 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Thống kê chi tiêu theo danh mục</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-primary">
+                                            <tr>
+                                                <th>Danh mục</th>
+                                                <th class="text-end">Số tiền (VNĐ)</th>
+                                                <th class="text-end">Tỷ lệ (%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                `;
+                
+                Object.entries(data.categoryExpenses).forEach(([category, amount]) => {
+                    const percentage = ((amount / data.totalExpense) * 100).toFixed(2);
+                    html += `
+                        <tr>
+                            <td>${category}</td>
+                            <td class="text-end">${amount.toLocaleString('vi-VN')}</td>
+                            <td class="text-end">${percentage}%</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <canvas id="categoryChart" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (html === '') {
+                html = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Không có dữ liệu cho tháng đã chọn
+                    </div>
+                `;
+            }
+            
+            $('#previewContent').html(html);
+            
+            // Vẽ biểu đồ nếu có dữ liệu
+            if (data.categoryExpenses && Object.keys(data.categoryExpenses).length > 0) {
+                const ctx = document.getElementById('categoryChart').getContext('2d');
+                const categories = Object.keys(data.categoryExpenses);
+                const values = Object.values(data.categoryExpenses);
+                
+                // Tạo màu ngẫu nhiên cho biểu đồ
+                const backgroundColors = categories.map(() => {
+                    const r = Math.floor(Math.random() * 255);
+                    const g = Math.floor(Math.random() * 255);
+                    const b = Math.floor(Math.random() * 255);
+                    return `rgba(${r}, ${g}, ${b}, 0.7)`;
+                });
+                
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: categories,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: backgroundColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 15
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(2);
+                                        return `${context.label}: ${value.toLocaleString('vi-VN')} VNĐ (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}

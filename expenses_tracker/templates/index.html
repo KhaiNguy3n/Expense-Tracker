@@ -1,0 +1,1730 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block content %}
+<style>
+  /* Dashboard General Styles */
+  .dashboard-container {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Card Styles */
+  .stat-card {
+    transition: all 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  }
+  
+  .card-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover .card-icon {
+    transform: scale(1.1);
+  }
+  
+  /* Chart Card Styles */
+  .chart-card {
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .chart-card:hover {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  }
+  
+  /* Table Styles */
+  .transaction-table th {
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .transaction-table tbody tr {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+  }
+  
+  .transaction-table tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-left: 3px solid #0d6efd;
+  }
+  
+  .category-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+  
+  /* Progress Bar Styles */
+  .budget-progress .progress {
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: #e9ecef;
+  }
+  
+  .budget-progress .progress-bar {
+    transition: width 1s ease;
+    border-radius: 4px;
+  }
+  
+  .budget-item {
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .budget-item:hover {
+    background-color: rgba(0,0,0,0.02);
+  }
+
+  /* Budget Scroll Container Styles */
+  .budget-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #cfd8dc #f8f9fa;
+  }
+  
+  .budget-scroll-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .budget-scroll-container::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 10px;
+  }
+  
+  .budget-scroll-container::-webkit-scrollbar-thumb {
+    background-color: #cfd8dc;
+    border-radius: 10px;
+  }
+  
+  .budget-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: #b0bec5;
+  }
+  
+  /* Modal Styles */
+  .modal-content {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  /* Custom Button Styles */
+  .btn-add-expense {
+    background: linear-gradient(45deg, #0d6efd, #0a58ca);
+    border: none;
+    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-add-expense:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(13, 110, 253, 0.3);
+    background: linear-gradient(45deg, #0a58ca, #084298);
+  }
+  
+  /* Custom Form Styles */
+  .form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 1rem;
+    }
+    
+    .stat-card h3 {
+      font-size: 1.5rem;
+    }
+    
+    .transaction-table th, .transaction-table td {
+      padding: 0.5rem;
+    }
+  }
+  
+  /* Custom Colors for Categories */
+  .bg-groceries { background-color: rgba(13, 110, 253, 0.1); }
+  .text-groceries { color: #0d6efd; }
+  
+  .bg-dining { background-color: rgba(220, 53, 69, 0.1); }
+  .text-dining { color: #dc3545; }
+  
+  .bg-utilities { background-color: rgba(255, 193, 7, 0.1); }
+  .text-utilities { color: #ffc107; }
+  
+  .bg-shopping { background-color: rgba(13, 202, 240, 0.1); }
+  .text-shopping { color: #0dcaf0; }
+  
+  .bg-entertainment { background-color: rgba(40, 167, 69, 0.1); }
+  .text-entertainment { color: #28a745; }
+  
+  .bg-transportation { background-color: rgba(111, 66, 193, 0.1); }
+  .text-transportation { color: #6f42c1; }
+  
+  .bg-health { background-color: rgba(23, 162, 184, 0.1); }
+  .text-health { color: #17a2b8; }
+  
+  .bg-other { background-color: rgba(108, 117, 125, 0.1); }
+  .text-other { color: #6c757d; }
+  
+  /* Animation for Budget Progress Bars */
+  @keyframes progressAnimation {
+    0% { width: 0; }
+  }
+  
+  .animate-progress .progress-bar {
+    animation: progressAnimation 1.5s ease-out forwards;
+  }
+  
+  /* Đảm bảo canvas hiển thị đúng */
+  canvas {
+    max-width: 100%;
+    height: auto !important;
+  }
+  
+  .chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+  }
+  
+  /* Thêm spinner khi đang tải biểu đồ */
+  .chart-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  
+  /* Filter Controls */
+  .filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .month-selector {
+    min-width: 150px;
+    text-align: left;
+    position: relative;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .month-selector:hover {
+    background-color: #e7f1ff;
+    border-color: #0d6efd;
+  }
+  
+  .month-dropdown {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: none;
+  }
+</style>
+
+<div class="container-fluid py-4 dashboard-container">
+  <!-- Page Title -->
+  <div class="row mb-4 align-items-center">
+    <div class="col-lg-6">
+      <h2 class="fw-bold"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+      <p class="text-muted mb-0">Overview of your financial activities</p>
+    </div>
+    <div class="col-lg-6">
+      <div class="d-flex flex-wrap justify-content-lg-end align-items-center filter-controls mt-3 mt-lg-0">
+        <!-- Filter by Month Button -->
+        <div class="me-2 mb-2 mb-md-0">
+          <div class="input-group">
+            <button class="btn btn-outline-primary dropdown-toggle month-selector px-3" type="button" data-bs-toggle="dropdown" id="currentPeriodSelector" data-month="{{ current_month }}" data-year="{{ current_year }}">
+              <i class="fas fa-calendar me-1"></i> {{ current_period }}
+            </button>
+            <ul class="dropdown-menu month-dropdown">
+              <!-- Các tháng sẽ được thêm bằng JavaScript -->
+            </ul>
+          </div>
+        </div>
+        
+        <!-- Add Expense Button -->
+        <a href="{{ url_for('DanhMuc') }}" class="btn btn-primary btn-add-expense px-3">
+          <i class="fas fa-plus me-1"></i> Add Expense
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Tổng số dư</h6>
+              <h3 class="fw-bold mb-0 total-balance">0 ₫</h3>
+            </div>
+            <div class="card-icon bg-primary bg-opacity-10">
+              <i class="fas fa-wallet text-primary fs-4"></i>
+            </div>
+          </div>
+          <div class="mt-3 small balance-change">
+            <i class="fas fa-arrow-up me-1"></i> <span>0%</span> từ tháng trước
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Tổng thu nhập</h6>
+              <h3 class="fw-bold mb-0 total-income">0 ₫</h3>
+            </div>
+            <div class="card-icon bg-success bg-opacity-10">
+              <i class="fas fa-arrow-down text-success fs-4"></i>
+            </div>
+          </div>
+          <div class="mt-3 small income-change">
+            <i class="fas fa-arrow-up me-1"></i> <span>0%</span> từ tháng trước
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Tổng chi tiêu</h6>
+              <h3 class="fw-bold mb-0 total-expenses">0 ₫</h3>
+            </div>
+            <div class="card-icon bg-danger bg-opacity-10">
+              <i class="fas fa-arrow-up text-danger fs-4"></i>
+            </div>
+          </div>
+          <div class="mt-3 small expense-change">
+            <i class="fas fa-arrow-up me-1"></i> <span>0%</span> từ tháng trước
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Tỷ lệ tiết kiệm</h6>
+              <h3 class="fw-bold mb-0 saving-rate">0%</h3>
+            </div>
+            <div class="card-icon bg-info bg-opacity-10">
+              <i class="fas fa-piggy-bank text-info fs-4"></i>
+            </div>
+          </div>
+          <div class="mt-3 small saving-rate-change">
+            <i class="fas fa-arrow-up me-1"></i> <span>0%</span> từ tháng trước
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row mb-4">
+    <!-- Monthly Expense Chart -->
+    <div class="col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm h-100 chart-card">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Tổng quan chi tiêu hàng tháng</h5>
+            <div>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-secondary active" id="monthlyViewBtn">Tháng</button>
+                <button class="btn btn-sm btn-outline-secondary" id="weeklyViewBtn">Tuần</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <div class="chart-loading" id="chartLoading">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+              </div>
+              <p class="mt-2">Đang tải dữ liệu biểu đồ...</p>
+            </div>
+            <canvas id="expenseChart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expense by Category -->
+    <div class="col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm h-100 chart-card">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Chi tiêu theo danh mục</h5>
+            <button class="btn btn-sm btn-outline-secondary" onclick="updateCategoryChart()">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="categoryChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Transactions and Budget Progress -->
+  <div class="row">
+    <!-- Recent Transactions -->
+    <div class="col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm chart-card">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Giao dịch gần đây</h5>
+            <a href="{{ url_for('DanhMuc') }}" class="btn btn-sm btn-link text-decoration-none">Xem tất cả</a>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 transaction-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Danh mục</th>
+                  <th>Mô tả</th>
+                  <th>Ngày</th>
+                  <th>Số tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Các giao dịch sẽ được thêm vào đây từ JavaScript -->
+                <tr>
+                  <td colspan="4" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    Đang tải dữ liệu giao dịch...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget Progress -->
+    <div class="col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm h-100 chart-card">
+        <div class="card-header bg-white border-0 py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Tiến độ ngân sách</h5>
+            <button class="btn btn-sm btn-outline-primary" id="setBudgetBtn">
+              <i class="fas fa-plus me-1"></i> Thiết lập ngân sách
+            </button>
+          </div>
+        </div>
+        <div class="card-body budget-progress">
+          <!-- Budget items will be loaded here dynamically -->
+          <div class="text-center py-4 text-muted" id="budgetLoadingIndicator">
+            <div class="spinner-border spinner-border-sm me-2" role="status">
+              <span class="visually-hidden">Đang tải...</span>
+            </div>
+            Đang tải dữ liệu ngân sách...
+          </div>
+          <div id="budgetProgressItems" class="budget-scroll-container" style="max-height: 400px; overflow-y: auto; padding-right: 5px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Expense Modal -->
+  <div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addExpenseModalLabel">Thêm chi tiêu mới</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="expenseAmount" class="form-label">Số tiền</label>
+              <div class="input-group">
+                <span class="input-group-text">₫</span>
+                <input type="number" class="form-control" id="expenseAmount" placeholder="0" step="1000" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="expenseCategory" class="form-label">Danh mục</label>
+              <select class="form-select" id="expenseCategory" required>
+                <option value="" selected disabled>Chọn danh mục</option>
+                <!-- Các danh mục sẽ được thêm động từ JavaScript -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="expenseDescription" class="form-label">Mô tả</label>
+              <input type="text" class="form-control" id="expenseDescription" placeholder="Chi tiêu này là gì?">
+            </div>
+            <div class="mb-3">
+              <label for="expenseDate" class="form-label">Ngày</label>
+              <input type="date" class="form-control" id="expenseDate" required>
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isRecurring">
+                <label class="form-check-label" for="isRecurring">
+                  Chi tiêu định kỳ
+                </label>
+              </div>
+            </div>
+            <div class="mb-3 d-none" id="recurringOptions">
+              <label for="recurringFrequency" class="form-label">Tần suất</label>
+              <select class="form-select" id="recurringFrequency">
+                <option value="weekly">Hàng tuần</option>
+                <option value="monthly" selected>Hàng tháng</option>
+                <option value="yearly">Hàng năm</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary btn-add-expense">Lưu chi tiêu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Set Budget Modal -->
+  <div class="modal fade" id="setBudgetModal" tabindex="-1" aria-labelledby="setBudgetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="setBudgetModalLabel">Thiết lập ngân sách</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <p class="text-muted">Thiết lập ngân sách chi tiêu hàng tháng cho từng danh mục</p>
+          </div>
+          <form id="budgetForm">
+            <div id="budgetItems" class="budget-scroll-container" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+              <!-- Budget form items will be added here dynamically -->
+              <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Đang tải...</span>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary" id="saveBudgetBtn">Lưu ngân sách</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Charts -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Hàm hỗ trợ định dạng tiền tệ
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('vi-VN', { 
+        style: 'currency', 
+        currency: 'VND',
+        maximumFractionDigits: 0
+      }).format(amount);
+    }
+    
+    // Load Dashboard Stats
+    async function loadDashboardStats() {
+      try {
+        const response = await fetch('/get_dashboard_stats');
+        const data = await response.json();
+        
+        // Cập nhật các thông số dashboard
+        document.querySelector('.total-balance').textContent = formatCurrency(data.total_balance);
+        document.querySelector('.total-income').textContent = formatCurrency(data.total_income);
+        document.querySelector('.total-expenses').textContent = formatCurrency(data.total_expenses);
+        document.querySelector('.saving-rate').textContent = data.saving_rate.toFixed(1) + '%';
+        
+        // Cập nhật phần trăm thay đổi
+        updateChangeIndicator('.balance-change', data.balance_change);
+        updateChangeIndicator('.income-change', data.income_change);
+        updateChangeIndicator('.expense-change', data.expense_change);
+        updateChangeIndicator('.saving-rate-change', data.saving_rate_change);
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+      }
+    }
+
+    // Hàm cập nhật chỉ số thay đổi với icon và màu sắc tương ứng
+    function updateChangeIndicator(selector, changeValue) {
+      const element = document.querySelector(selector);
+      const isPositive = changeValue > 0;
+      const isNeutral = changeValue === 0;
+      
+      // Xác định icon và màu sắc dựa trên giá trị
+      let icon = isPositive ? 'fa-arrow-up' : (isNeutral ? 'fa-equals' : 'fa-arrow-down');
+      let colorClass = isPositive ? 'text-success' : (isNeutral ? 'text-muted' : 'text-danger');
+      
+      // Đối với expense, ngược lại (tăng là không tốt, giảm là tốt)
+      if (selector === '.expense-change') {
+        colorClass = isPositive ? 'text-danger' : (isNeutral ? 'text-muted' : 'text-success');
+      }
+      
+      // Tìm thẻ i (icon) và span (giá trị) trong element
+      const iconElement = element.querySelector('i');
+      const valueElement = element.querySelector('span');
+      
+      // Cập nhật icon, màu sắc và giá trị
+      if (iconElement) {
+        iconElement.className = `fas ${icon} me-1`;
+        element.className = element.className.replace(/text-\w+/g, '') + ' ' + colorClass;
+      }
+      
+      if (valueElement) {
+        const absValue = Math.abs(changeValue).toFixed(1);
+        valueElement.textContent = `${absValue}%`;
+      }
+    }
+
+    // Load dữ liệu dashboard khi trang được tải
+    loadDashboardStats();
+    
+    // Toggle recurring options
+    document.getElementById('isRecurring').addEventListener('change', function() {
+      const recurringOptions = document.getElementById('recurringOptions');
+      if (this.checked) {
+        recurringOptions.classList.remove('d-none');
+      } else {
+        recurringOptions.classList.add('d-none');
+      }
+    });
+
+    // Set current date as default for expense date
+    const today = new Date();
+    const formattedDate = today.toISOString().substr(0, 10);
+    document.getElementById('expenseDate').value = formattedDate;
+
+    // Thêm icon map cho các danh mục
+    const categoryIcons = {
+      'Thực phẩm': { icon: 'fa-shopping-cart', bgClass: 'bg-groceries', textClass: 'text-groceries' },
+      'Ăn uống': { icon: 'fa-utensils', bgClass: 'bg-dining', textClass: 'text-dining' },
+      'Hóa đơn & Dịch vụ': { icon: 'fa-bolt', bgClass: 'bg-utilities', textClass: 'text-utilities' },
+      'Mua sắm': { icon: 'fa-tshirt', bgClass: 'bg-shopping', textClass: 'text-shopping' },
+      'Giải trí': { icon: 'fa-film', bgClass: 'bg-entertainment', textClass: 'text-entertainment' },
+      'Di chuyển': { icon: 'fa-car', bgClass: 'bg-transportation', textClass: 'text-transportation' },
+      'Sức khỏe': { icon: 'fa-heartbeat', bgClass: 'bg-health', textClass: 'text-health' },
+      'Khác': { icon: 'fa-ellipsis-h', bgClass: 'bg-other', textClass: 'text-other' }
+    };
+
+    // Hàm load dữ liệu cho recent transactions
+    async function loadRecentTransactions() {
+      try {
+        const response = await fetch('/get_recent_transactions');
+        const transactions = await response.json();
+        
+        const tableBody = document.querySelector('.transaction-table tbody');
+        tableBody.innerHTML = '';
+        
+        if (transactions.length === 0) {
+          const emptyRow = document.createElement('tr');
+          emptyRow.innerHTML = `
+            <td colspan="4" class="text-center py-3 text-muted">
+              Không có giao dịch nào gần đây
+            </td>
+          `;
+          tableBody.appendChild(emptyRow);
+          return;
+        }
+        
+        for (const transaction of transactions) {
+          const iconInfo = categoryIcons[transaction.category] || 
+                           { icon: 'fa-tag', bgClass: 'bg-secondary bg-opacity-10', textClass: 'text-secondary' };
+          
+          const formattedAmount = formatCurrency(transaction.type === 'expense' ? Math.abs(transaction.amount) : transaction.amount);
+          const amountClass = transaction.type === 'expense' ? 'text-danger' : 'text-success';
+          const amountPrefix = transaction.type === 'expense' ? '-' : '+';
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="category-icon ${iconInfo.bgClass} me-2">
+                  <i class="fas ${iconInfo.icon} ${iconInfo.textClass}"></i>
+                </div>
+                <span>${transaction.category}</span>
+              </div>
+            </td>
+            <td>${transaction.description || '&mdash;'}</td>
+            <td>${transaction.date}</td>
+            <td class="${amountClass} fw-bold">${amountPrefix}${formattedAmount}</td>
+          `;
+          tableBody.appendChild(row);
+        }
+      } catch (error) {
+        console.error('Error loading recent transactions:', error);
+      }
+    }
+
+    // Hàm load dữ liệu cho budget progress
+    async function loadBudgetProgress() {
+      try {
+        const loadingIndicator = document.getElementById('budgetLoadingIndicator');
+        const budgetContainer = document.getElementById('budgetProgressItems');
+        
+        loadingIndicator.style.display = 'block';
+        budgetContainer.innerHTML = '';
+        
+        const response = await fetch('/get_budget_progress');
+        const budgetItems = await response.json();
+        
+        loadingIndicator.style.display = 'none';
+        
+        if (budgetItems.length === 0) {
+          budgetContainer.innerHTML = `
+            <div class="text-center py-3 text-muted">
+              Chưa có ngân sách nào được thiết lập
+            </div>
+          `;
+          return;
+        }
+
+        // Tạo một phần tử container để thêm tất cả các budget item
+        const fragment = document.createDocumentFragment();
+        
+        // Thêm tiêu đề
+        const headerElement = document.createElement('div');
+        headerElement.className = 'mb-3 pb-2 border-bottom';
+        headerElement.innerHTML = `
+          <div class="d-flex justify-content-between">
+            <span class="fw-bold">Danh mục</span>
+            <span class="fw-bold">Tiến độ</span>
+          </div>
+        `;
+        fragment.appendChild(headerElement);
+        
+        // Sắp xếp budgetItems theo trạng thái (danger trước, warning tiếp theo, rồi đến primary)
+        const prioritizedItems = [...budgetItems].sort((a, b) => {
+          // Ưu tiên theo status
+          const statusPriority = { 'danger': 0, 'warning': 1, 'primary': 2 };
+          const statusDiff = statusPriority[a.status] - statusPriority[b.status];
+          
+          if (statusDiff !== 0) return statusDiff;
+          
+          // Nếu cùng status, ưu tiên theo phần trăm
+          return b.percentage - a.percentage;
+        });
+        
+        // Thêm các budget item
+        for (const budget of prioritizedItems) {
+          const iconInfo = categoryIcons[budget.category] || 
+                          { icon: 'fa-tag', bgClass: 'bg-secondary bg-opacity-10', textClass: 'text-secondary' };
+          
+          const statusClass = budget.status === 'danger' ? 'bg-danger' : 
+                             (budget.status === 'warning' ? 'bg-warning' : 'bg-primary');
+          
+          const statusText = budget.status === 'danger' ? 'Vượt quá' : 
+                            (budget.status === 'warning' ? 'Cảnh báo' : 'Bình thường');
+          
+          const budgetItem = document.createElement('div');
+          budgetItem.className = 'budget-item mb-3';
+          budgetItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="d-flex align-items-center">
+                <div class="category-icon ${iconInfo.bgClass} me-2">
+                  <i class="fas ${iconInfo.icon} ${iconInfo.textClass}"></i>
+                </div>
+                <span>${budget.category}</span>
+              </div>
+              <span class="small ${budget.status === 'danger' ? 'text-danger' : (budget.status === 'warning' ? 'text-warning' : 'text-primary')}">${budget.percentage}%</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
+              <span>${formatCurrency(budget.actual)} / ${formatCurrency(budget.budget)}</span>
+              <span>${statusText}</span>
+            </div>
+            <div class="progress animate-progress">
+              <div class="progress-bar ${statusClass}" role="progressbar" style="width: ${budget.percentage}%;" 
+                   aria-valuenow="${budget.percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          `;
+          fragment.appendChild(budgetItem);
+        }
+        
+        budgetContainer.appendChild(fragment);
+        
+        // Thêm hiệu ứng scroll mượt khi di chuột vào
+        budgetContainer.addEventListener('mouseenter', function() {
+          this.style.overflowY = 'auto';
+        });
+        
+        budgetContainer.addEventListener('mouseleave', function() {
+          this.style.overflowY = 'auto';
+        });
+      } catch (error) {
+        console.error('Error loading budget progress:', error);
+      }
+    }
+
+    // Xử lý modal thiết lập ngân sách
+    const setBudgetBtn = document.getElementById('setBudgetBtn');
+    const setBudgetModal = new bootstrap.Modal(document.getElementById('setBudgetModal'));
+    const saveBudgetBtn = document.getElementById('saveBudgetBtn');
+    
+    // Load dữ liệu ngân sách khi mở modal
+    setBudgetBtn.addEventListener('click', async function() {
+      const budgetItemsContainer = document.getElementById('budgetItems');
+      budgetItemsContainer.innerHTML = `
+        <div class="text-center py-3">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+        </div>
+      `;
+      
+      try {
+        const response = await fetch('/get_budgets');
+        const budgets = await response.json();
+        
+        budgetItemsContainer.innerHTML = '';
+        
+        // Thêm tiêu đề
+        const headerElement = document.createElement('div');
+        headerElement.className = 'mb-3 pb-2 border-bottom d-flex justify-content-between';
+        headerElement.innerHTML = `
+          <span class="fw-bold">Danh mục</span>
+          <span class="fw-bold">Ngân sách (₫)</span>
+        `;
+        budgetItemsContainer.appendChild(headerElement);
+        
+        // Sắp xếp các danh mục theo nhóm
+        const categoryGroups = {
+          'essentials': ['Hóa đơn & Dịch vụ'],
+          'lifestyle': ['Mua sắm', 'Giải trí', 'Di chuyển'],
+          'others': ['Sức khỏe', 'Khác']
+        };
+        
+        // Tạo mảng đã sắp xếp
+        const sortedBudgets = [];
+        
+        // Thêm các danh mục thiết yếu trước
+        categoryGroups.essentials.forEach(categoryName => {
+          const budget = budgets.find(b => b.category === categoryName);
+          if (budget) {
+            sortedBudgets.push(budget);
+          }
+        });
+        
+        // Tiếp theo là các danh mục lifestyle
+        categoryGroups.lifestyle.forEach(categoryName => {
+          const budget = budgets.find(b => b.category === categoryName);
+          if (budget) {
+            sortedBudgets.push(budget);
+          }
+        });
+        
+        // Cuối cùng là các danh mục còn lại
+        categoryGroups.others.forEach(categoryName => {
+          const budget = budgets.find(b => b.category === categoryName);
+          if (budget) {
+            sortedBudgets.push(budget);
+          }
+        });
+        
+        // Thêm các danh mục khác không nằm trong các nhóm đã định nghĩa
+        budgets.forEach(budget => {
+          if (!sortedBudgets.some(b => b.category === budget.category)) {
+            sortedBudgets.push(budget);
+          }
+        });
+        
+        // Tạo form inputs cho từng danh mục
+        for (const budget of sortedBudgets) {
+          const iconInfo = categoryIcons[budget.category] || 
+                          { icon: 'fa-tag', bgClass: 'bg-secondary bg-opacity-10', textClass: 'text-secondary' };
+          
+          const budgetItem = document.createElement('div');
+          budgetItem.className = 'mb-3';
+          budgetItem.innerHTML = `
+            <div class="d-flex align-items-center mb-2">
+              <div class="category-icon ${iconInfo.bgClass} me-2">
+                <i class="fas ${iconInfo.icon} ${iconInfo.textClass}"></i>
+              </div>
+              <label for="budget-${budget.category}" class="form-label mb-0">${budget.category}</label>
+            </div>
+            <div class="input-group">
+              <span class="input-group-text">₫</span>
+              <input type="number" class="form-control budget-input" id="budget-${budget.category}" 
+                     name="${budget.category}" value="${budget.amount}" min="0" step="1000">
+            </div>
+          `;
+          budgetItemsContainer.appendChild(budgetItem);
+        }
+      } catch (error) {
+        console.error('Error loading budgets:', error);
+        budgetItemsContainer.innerHTML = `
+          <div class="alert alert-danger">
+            Có lỗi xảy ra khi tải dữ liệu ngân sách. Vui lòng thử lại.
+          </div>
+        `;
+      }
+      
+      setBudgetModal.show();
+    });
+    
+    // Lưu ngân sách khi nhấn nút "Lưu ngân sách"
+    saveBudgetBtn.addEventListener('click', async function() {
+      saveBudgetBtn.disabled = true;
+      saveBudgetBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang lưu...';
+      
+      try {
+        const budgetInputs = document.querySelectorAll('.budget-input');
+        const budgets = [];
+        
+        budgetInputs.forEach(input => {
+          budgets.push({
+            category: input.name,
+            amount: parseFloat(input.value) || 0
+          });
+        });
+        
+        const response = await fetch('/set_budget', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ budgets })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          setBudgetModal.hide();
+          // Reload budget progress sau khi lưu
+          loadBudgetProgress();
+        } else {
+          alert('Có lỗi xảy ra: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error saving budgets:', error);
+        alert('Có lỗi xảy ra khi lưu ngân sách. Vui lòng thử lại.');
+      } finally {
+        saveBudgetBtn.disabled = false;
+        saveBudgetBtn.innerHTML = 'Lưu ngân sách';
+      }
+    });
+    
+    // Load recent transactions và budget progress khi trang được load
+    loadRecentTransactions();
+    loadBudgetProgress();
+    
+    // Cập nhật tab Monthly/Weekly khi click
+    const monthlyBtn = document.getElementById('monthlyViewBtn');
+    const weeklyBtn = document.getElementById('weeklyViewBtn');
+    
+    monthlyBtn.addEventListener('click', function() {
+      if (!this.classList.contains('active')) {
+        this.classList.add('active');
+        weeklyBtn.classList.remove('active');
+        initializeExpenseChart(); // Load lại biểu đồ theo tháng
+      }
+    });
+    
+    weeklyBtn.addEventListener('click', function() {
+      if (!this.classList.contains('active')) {
+        this.classList.add('active');
+        monthlyBtn.classList.remove('active');
+        initializeWeeklyExpenseChart(); // Load biểu đồ theo tuần
+      }
+    });
+    
+    // Thêm tên biểu đồ mặc định vào biến toàn cục để tham chiếu khi thay đổi
+    async function initializeExpenseChart() {
+      try {
+        // Kiểm tra xem Chart.js đã được tải chưa
+        if (typeof Chart === 'undefined') {
+          console.error('Chart.js chưa được tải. Vui lòng kiểm tra kết nối mạng và tải lại trang.');
+          const chartLoading = document.getElementById('chartLoading');
+          if (chartLoading) {
+            chartLoading.innerHTML = `
+              <div class="text-danger">
+                <i class="fas fa-exclamation-circle fa-2x"></i>
+                <p class="mt-2">Chart.js chưa được tải. Vui lòng kiểm tra kết nối mạng và tải lại trang.</p>
+              </div>
+            `;
+          }
+          return;
+        }
+        
+        // Hiển thị spinner khi đang tải
+        const chartLoading = document.getElementById('chartLoading');
+        if (chartLoading) chartLoading.style.display = 'block';
+        
+        // Lấy tháng và năm từ session hoặc URL, nếu không có thì lấy tháng hiện tại
+        const selector = document.getElementById('currentPeriodSelector');
+        const selectedMonth = selector.dataset.month;
+        const selectedYear = selector.dataset.year;
+        
+        // Tạo URL với tham số truy vấn
+        const url = `/get_monthly_data?month=${selectedMonth}&year=${selectedYear}`;
+        console.log("Đang fetch dữ liệu tháng từ:", url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log("Dữ liệu nhận được:", data);
+        
+        // Kiểm tra xem có dữ liệu không
+        let hasData = false;
+        if (data && data.expenses) {
+          hasData = data.expenses.some(value => value > 0);
+        }
+        
+        // Nếu không có dữ liệu, thêm dữ liệu giả để hiển thị demo
+        if (!hasData) {
+          console.log("Không có dữ liệu thực, sử dụng dữ liệu mẫu");
+          data.expenses = [250000, 350000, 420000, 300000, 380000, 520000, 480000, 600000, 550000, 400000, 450000, 580000];
+          data.line_data = [250000];
+          // Tính toán tổng lũy kế
+          for (let i = 1; i < 12; i++) {
+            data.line_data[i] = data.line_data[i-1] + data.expenses[i];
+          }
+        }
+        
+        // Kiểm tra nếu canvas không tồn tại
+        const expenseChartElement = document.getElementById('expenseChart');
+        if (!expenseChartElement) {
+          console.error("Không tìm thấy phần tử canvas 'expenseChart'");
+          return;
+        }
+        
+        const expenseCtx = expenseChartElement.getContext('2d');
+        
+        // Nếu đã có biểu đồ, destroy nó trước khi tạo mới
+        if (window.expenseChart instanceof Chart) {
+          window.expenseChart.destroy();
+        } else {
+          // Reset biến window.expenseChart nếu nó tồn tại nhưng không phải là Chart
+          if (window.expenseChart) {
+            console.log("Biểu đồ cũ không hợp lệ, tạo mới biểu đồ");
+            window.expenseChart = null;
+          }
+        }
+        
+        // Màu gradient cho cột chi tiêu
+        const gradientFill = expenseCtx.createLinearGradient(0, 0, 0, 400);
+        gradientFill.addColorStop(0, 'rgba(220, 53, 69, 0.8)');
+        gradientFill.addColorStop(1, 'rgba(220, 53, 69, 0.2)');
+        
+        window.expenseChart = new Chart(expenseCtx, {
+          type: 'bar',
+          data: {
+            labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'],
+            datasets: [
+              {
+                label: 'Chi tiêu',
+                data: data.expenses,
+                backgroundColor: gradientFill,
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7
+              },
+              {
+                label: 'Tổng chi tiêu lũy kế',
+                data: data.line_data,
+                backgroundColor: 'rgba(13, 110, 253, 0)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 2,
+                type: 'line',
+                yAxisID: 'y1',
+                tension: 0.4,
+                pointBackgroundColor: 'rgba(13, 110, 253, 1)',
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: {
+                  display: false
+                }
+              },
+              y: {
+                beginAtZero: true,
+                position: 'left',
+                title: {
+                  display: true,
+                  text: 'Chi tiêu hàng tháng',
+                  font: {
+                    weight: 'bold'
+                  }
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toLocaleString() + ' ₫';
+                  }
+                },
+                grid: {
+                  borderDash: [5, 5]
+                }
+              },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                title: {
+                  display: true,
+                  text: 'Tổng chi tiêu lũy kế',
+                  font: {
+                    weight: 'bold'
+                  }
+                },
+                grid: {
+                  drawOnChartArea: false
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toLocaleString() + ' ₫';
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  boxWidth: 10,
+                  padding: 20
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: {
+                  size: 14,
+                },
+                bodyFont: {
+                  size: 13
+                },
+                padding: 12,
+                cornerRadius: 6,
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw.toLocaleString('vi-VN') + ' ₫';
+                  }
+                }
+              }
+            },
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            animation: {
+              duration: 2000,
+              easing: 'easeOutQuart'
+            }
+          }
+        });
+        
+        // Ẩn spinner khi biểu đồ đã được vẽ
+        if (chartLoading) chartLoading.style.display = 'none';
+        
+        // Hiển thị nút chuyển đổi khi biểu đồ được tải xong
+        document.querySelector('.btn-group').style.display = 'flex';
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+        // Hiển thị thông báo lỗi nếu không thể tải được dữ liệu
+        const chartLoading = document.getElementById('chartLoading');
+        if (chartLoading) {
+          chartLoading.innerHTML = `
+            <div class="text-danger">
+              <i class="fas fa-exclamation-circle fa-2x"></i>
+              <p class="mt-2">Không thể tải dữ liệu biểu đồ</p>
+            </div>
+          `;
+        }
+      }
+    }
+    
+    // Hàm initialize biểu đồ chi tiêu theo tuần
+    async function initializeWeeklyExpenseChart() {
+      try {
+        // Kiểm tra xem Chart.js đã được tải chưa
+        if (typeof Chart === 'undefined') {
+          console.error('Chart.js chưa được tải. Vui lòng kiểm tra kết nối mạng và tải lại trang.');
+          const chartLoading = document.getElementById('chartLoading');
+          if (chartLoading) {
+            chartLoading.innerHTML = `
+              <div class="text-danger">
+                <i class="fas fa-exclamation-circle fa-2x"></i>
+                <p class="mt-2">Chart.js chưa được tải. Vui lòng kiểm tra kết nối mạng và tải lại trang.</p>
+              </div>
+            `;
+          }
+          return;
+        }
+        
+        // Hiển thị spinner khi đang tải
+        const chartLoading = document.getElementById('chartLoading');
+        if (chartLoading) chartLoading.style.display = 'block';
+        
+        // Lấy tháng và năm từ selector
+        const selector = document.getElementById('currentPeriodSelector');
+        const selectedMonth = selector.dataset.month;
+        const selectedYear = selector.dataset.year;
+        
+        // Tạo URL với tham số truy vấn
+        const url = `/get_weekly_data?month=${selectedMonth}&year=${selectedYear}`;
+        console.log('Đang fetch dữ liệu tuần từ:', url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log('Dữ liệu tuần nhận được:', data);
+        
+        // Kiểm tra xem có dữ liệu không
+        let hasData = false;
+        if (data && data.expenses) {
+          hasData = data.expenses.some(value => value > 0);
+        }
+        
+        console.log("Có dữ liệu tuần:", hasData);
+        
+        // Nếu không có dữ liệu, thêm dữ liệu giả để hiển thị demo
+        if (!hasData) {
+          console.log("Không có dữ liệu tuần thực, sử dụng dữ liệu mẫu");
+          // Tạo dữ liệu mẫu cho 5 tuần
+          data.expenses = [120000, 180000, 150000, 210000, 240000];
+          data.line_data = [120000];
+          // Tính toán tổng lũy kế
+          for (let i = 1; i < 5; i++) {
+            data.line_data[i] = data.line_data[i-1] + data.expenses[i];
+          }
+          // Nếu không có nhãn, tạo nhãn mẫu
+          if (!data.labels || data.labels.length === 0) {
+            data.labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4', 'Tuần 5'];
+          }
+        }
+        
+        // Kiểm tra nếu canvas không tồn tại
+        const expenseChartElement = document.getElementById('expenseChart');
+        if (!expenseChartElement) {
+          console.error("Không tìm thấy phần tử canvas 'expenseChart'");
+          return;
+        }
+        
+        const expenseCtx = expenseChartElement.getContext('2d');
+        
+        // Nếu đã có biểu đồ, destroy nó trước khi tạo mới
+        if (window.expenseChart instanceof Chart) {
+          window.expenseChart.destroy();
+        } else {
+          // Reset biến window.expenseChart nếu nó tồn tại nhưng không phải là Chart
+          if (window.expenseChart) {
+            console.log("Biểu đồ cũ không hợp lệ, tạo mới biểu đồ");
+            window.expenseChart = null;
+          }
+        }
+        
+        // Màu gradient cho cột chi tiêu
+        const gradientFill = expenseCtx.createLinearGradient(0, 0, 0, 400);
+        gradientFill.addColorStop(0, 'rgba(40, 167, 69, 0.8)');
+        gradientFill.addColorStop(1, 'rgba(40, 167, 69, 0.2)');
+        
+        window.expenseChart = new Chart(expenseCtx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: 'Chi tiêu theo tuần',
+                data: data.expenses,
+                backgroundColor: gradientFill,
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7
+              },
+              {
+                label: 'Tổng chi tiêu lũy kế',
+                data: data.line_data,
+                backgroundColor: 'rgba(13, 110, 253, 0)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 2,
+                type: 'line',
+                yAxisID: 'y1',
+                tension: 0.4,
+                pointBackgroundColor: 'rgba(13, 110, 253, 1)',
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: {
+                  display: false
+                }
+              },
+              y: {
+                beginAtZero: true,
+                position: 'left',
+                title: {
+                  display: true,
+                  text: 'Chi tiêu hàng tuần',
+                  font: {
+                    weight: 'bold'
+                  }
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toLocaleString() + ' ₫';
+                  }
+                },
+                grid: {
+                  borderDash: [5, 5]
+                }
+              },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                title: {
+                  display: true,
+                  text: 'Tổng chi tiêu lũy kế',
+                  font: {
+                    weight: 'bold'
+                  }
+                },
+                grid: {
+                  drawOnChartArea: false
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toLocaleString() + ' ₫';
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  usePointStyle: true,
+                  boxWidth: 10,
+                  padding: 20
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: {
+                  size: 14,
+                },
+                bodyFont: {
+                  size: 13
+                },
+                padding: 12,
+                cornerRadius: 6,
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw.toLocaleString('vi-VN') + ' ₫';
+                  }
+                }
+              }
+            },
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            animation: {
+              duration: 1500,
+              easing: 'easeOutQuart'
+            }
+          }
+        });
+        
+        // Ẩn spinner khi biểu đồ đã được vẽ
+        if (chartLoading) chartLoading.style.display = 'none';
+      } catch (error) {
+        console.error('Error fetching weekly chart data:', error);
+        // Hiển thị thông báo lỗi nếu không thể tải được dữ liệu
+        const chartLoading = document.getElementById('chartLoading');
+        if (chartLoading) {
+          chartLoading.innerHTML = `
+            <div class="text-danger">
+              <i class="fas fa-exclamation-circle fa-2x"></i>
+              <p class="mt-2">Không thể tải dữ liệu biểu đồ tuần: ${error.message}</p>
+            </div>
+          `;
+        }
+      }
+    }
+    
+    // Hàm initialize biểu đồ chi tiêu theo từng ngày trong tuần hiện tại
+    async function initializeDailyExpenseChart() {
+      try {
+        const response = await fetch('/get_daily_expenses');
+        const data = await response.json();
+        
+        const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+        
+        // Nếu đã có biểu đồ, destroy nó trước khi tạo mới
+        if (window.expenseChart) {
+          window.expenseChart.destroy();
+        }
+        
+        window.expenseChart = new Chart(expenseCtx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: 'Chi tiêu',
+                data: data.expenses,
+                backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Tổng chi tiêu lũy kế',
+                data: data.line_data,
+                backgroundColor: 'rgba(13, 110, 253, 0)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 2,
+                type: 'line',
+                yAxisID: 'y1',
+                tension: 0.1,
+                pointBackgroundColor: 'rgba(13, 110, 253, 1)'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                position: 'left',
+                title: {
+                  display: true,
+                  text: 'Chi tiêu hàng ngày'
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toLocaleString() + ' ₫';
+                  }
+                }
+              },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                title: {
+                  display: true,
+                  text: 'Tổng chi tiêu lũy kế'
+                },
+                grid: {
+                  drawOnChartArea: false
+                },
+                ticks: {
+                  callback: function(value) {
+                    return value.toLocaleString() + ' ₫';
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw.toLocaleString('vi-VN') + ' ₫';
+                  }
+                }
+              }
+            },
+            animation: {
+              duration: 2000,
+              easing: 'easeOutQuart'
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching daily chart data:', error);
+      }
+    }
+    
+    // Bạn có thể gọi hàm này để kiểm tra biểu đồ với dữ liệu mẫu nếu API không hoạt động
+    // testChartWithSampleData();
+    
+    // Gọi hàm này để kết nối với API thực tế
+    initializeExpenseChart();
+
+    // Màu sắc cho các danh mục
+    const categoryColors = [
+        'rgba(13, 110, 253, 0.8)',   // Primary
+        'rgba(220, 53, 69, 0.8)',    // Danger
+        'rgba(255, 193, 7, 0.8)',    // Warning
+        'rgba(13, 202, 240, 0.8)',   // Info
+        'rgba(40, 167, 69, 0.8)',    // Success
+        'rgba(111, 66, 193, 0.8)',   // Purple
+        'rgba(23, 162, 184, 0.8)',   // Cyan
+        'rgba(108, 117, 125, 0.8)'   // Gray
+    ];
+
+    let categoryChart = null;
+
+    async function updateCategoryChart() {
+      try {
+        // Sử dụng tháng và năm được chọn nếu có
+        const selectedMonth = document.querySelector('.month-selector')?.dataset?.month;
+        const selectedYear = document.querySelector('.month-selector')?.dataset?.year;
+        
+        let url = '/get_category_expenses';
+        if (selectedMonth && selectedYear) {
+          url += `?month=${selectedMonth}&year=${selectedYear}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        const ctx = document.getElementById('categoryChart').getContext('2d');
+        
+        // Nếu biểu đồ đã tồn tại, hủy nó
+        if (categoryChart) {
+          categoryChart.destroy();
+        }
+        
+        // Chỉ vẽ biểu đồ nếu có dữ liệu
+        if (data.categories.length > 0) {
+          // Tạo biểu đồ mới
+          categoryChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: data.categories,
+              datasets: [{
+                data: data.percentages,
+                backgroundColor: categoryColors.slice(0, data.categories.length),
+                borderWidth: 1,
+                borderColor: '#fff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    padding: 20,
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    font: {
+                      size: 12
+                    }
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      const label = context.label || '';
+                      const value = data.amounts[context.dataIndex];
+                      const percentage = data.percentages[context.dataIndex];
+                      return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                    }
+                  }
+                }
+              },
+              animation: {
+                animateScale: true,
+                animateRotate: true
+              }
+            }
+          });
+        } else {
+          // Hiển thị thông báo nếu không có dữ liệu
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#6c757d';
+          ctx.fillText('Không có dữ liệu chi tiêu trong tháng này', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+      } catch (error) {
+        console.error('Error fetching category data:', error);
+      }
+    }
+    
+    // Gọi hàm cập nhật biểu đồ khi trang được load
+    updateCategoryChart();
+
+    // Tạo dropdown menu cho các tháng
+    function populateMonthDropdown() {
+      const dropdown = document.querySelector('.month-dropdown');
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth(); // 0-11
+      const currentYear = currentDate.getFullYear();
+      
+      // Tên các tháng trong tiếng Việt
+      const monthNames = [
+        "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", 
+        "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+      ];
+      
+      // Xóa các mục cũ nếu có
+      dropdown.innerHTML = '';
+      
+      // Thêm 12 tháng gần nhất vào dropdown
+      for (let i = 0; i < 12; i++) {
+        let targetMonth = currentMonth - i;
+        let targetYear = currentYear;
+        
+        if (targetMonth < 0) {
+          targetMonth += 12;
+          targetYear--;
+        }
+        
+        const monthValue = targetMonth + 1; // Chuyển về 1-12
+        const monthItem = document.createElement('li');
+        const monthLink = document.createElement('a');
+        
+        monthLink.className = 'dropdown-item';
+        monthLink.href = '#';
+        monthLink.textContent = `${monthNames[targetMonth]} ${targetYear}`;
+        monthLink.dataset.month = monthValue;
+        monthLink.dataset.year = targetYear;
+        
+        monthLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          // Cập nhật text và data trên nút dropdown
+          const selector = document.getElementById('currentPeriodSelector');
+          selector.textContent = this.textContent;
+          selector.dataset.month = this.dataset.month;
+          selector.dataset.year = this.dataset.year;
+          
+          // Lưu tháng và năm đã chọn vào backend
+          updateSelectedMonth(this.dataset.month, this.dataset.year);
+        });
+        
+        monthItem.appendChild(monthLink);
+        dropdown.appendChild(monthItem);
+      }
+    }
+    
+    // Gọi API để cập nhật tháng/năm được chọn
+    async function updateSelectedMonth(month, year) {
+      try {
+        const response = await fetch('/filter_by_month', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ month: parseInt(month), year: parseInt(year) })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Cập nhật UI với tháng mới
+          const selector = document.getElementById('currentPeriodSelector');
+          selector.innerHTML = `<i class="fas fa-calendar me-1"></i> ${data.selected_period}`;
+          
+          // Cập nhật lại các biểu đồ
+          loadDashboardStats();
+          initializeExpenseChart();
+          updateCategoryChart();
+          loadBudgetProgress();
+        }
+      } catch (error) {
+        console.error('Error updating selected month:', error);
+      }
+    }
+    
+    // Khởi tạo dropdown tháng khi trang được tải
+    populateMonthDropdown();
+  });
+</script>
+
+<!-- Monitor Chart.js loading -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Đảm bảo Chart.js đã được tải
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js chưa được tải. Thử tải lại...');
+      
+      // Thêm động script Chart.js
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      script.onload = function() {
+        console.log('Chart.js đã được tải lại thành công!');
+        // Gọi lại hàm khởi tạo biểu đồ
+        initializeExpenseChart();
+      };
+      script.onerror = function() {
+        console.error('Không thể tải Chart.js từ CDN!');
+        document.querySelector('.chart-loading').innerHTML = `
+          <div class="text-danger">
+            <i class="fas fa-exclamation-circle fa-2x"></i>
+            <p class="mt-2">Không thể tải Chart.js. Vui lòng kiểm tra kết nối mạng và tải lại trang.</p>
+          </div>
+        `;
+      };
+      document.head.appendChild(script);
+    } else {
+      console.log('Chart.js đã được tải thành công!');
+    }
+  });
+</script>
+{% endblock %}
